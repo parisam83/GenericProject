@@ -53,56 +53,59 @@ public class MyList<E> implements Iterable<E>{
 
     public ListIterator<E> listIterator(){
         return new ListIterator<E>() {
-            int lastReturned = -1; // index of last returned value
+            int cursor; // index of next element to return
+            int lastReturned = -1; // index of last returned element; -1 if no such
+            //boolean cursorDirection = true, remove = false;
 
             @Override
             public boolean hasNext() {
-                return lastReturned + 1 < size;
+                return cursor != size;
             }
 
             @Override
             public E next() {
-                if (hasNext()) return (E) elements[++lastReturned];
-                return null;
+                cursor++;
+                return (E) elements[lastReturned = (cursor - 1)];
             }
 
             @Override
             public boolean hasPrevious() {
-                return lastReturned > 0;
+                return cursor != 0;
             }
 
             @Override
             public E previous() {
-                if (hasPrevious()) return (E) elements[--lastReturned];
-                return null;
+                return (E) elements[lastReturned = --cursor];
             }
 
             @Override
             public int nextIndex() {
-                // TODO: if (!hasPrevious()) return
-                if (hasNext()) return lastReturned + 1;
-                return size;
+                return cursor;
             }
 
             @Override
             public int previousIndex() {
-                if (hasPrevious()) return lastReturned - 1;
-                return -1;
+                return cursor - 1;
             }
 
             @Override
             public void remove() {
                 MyList.this.remove(lastReturned);
+                cursor = lastReturned;
+                lastReturned = -1;
             }
 
             @Override
             public void set(E e) {
-                MyList.this.add(e, lastReturned);
+                MyList.this.set(lastReturned, e);
+
             }
 
             @Override
             public void add(E e) {
-                MyList.this.add(e);
+                MyList.this.add(e, cursor);
+                cursor++;
+                lastReturned = -1;
             }
         };
     }
@@ -118,24 +121,23 @@ public class MyList<E> implements Iterable<E>{
 
             @Override
             public E next() {
-                if (hasNext()) return (E) elements[++lastReturned];
-                return null;
+                return (E) elements[++lastReturned];
             }
         };
     }
 
-    public <T> void sort(Comparator<T> comparator){
+    public void sort(Comparator<? super E> comparator){
         for (int i = 0; i < size; i++)
             for (int j = i + 1; j < size; j++)
-                if (comparator.compare((T) elements[i], (T) elements[j]) > 0)
+                if (comparator.compare((E) elements[i], (E) elements[j]) > 0)
                     swap(i, j);
     }
 
-    public <T> void addAll(Collection<T> collection){
+    public void addAll(Collection<? extends E> collection){
         updateCapacity(collection.size());
         int index = size;
-        for (T collectionMember : collection)
-            elements[index++] = (E) collectionMember;
+        for (E collectionMember : collection)
+            elements[index++] = collectionMember;
         updateSize(collection.size());
     }
 
@@ -146,6 +148,9 @@ public class MyList<E> implements Iterable<E>{
     }
 
     // my methods
+    public void set(int index, E element){
+        elements[index] = element;
+    }
     public void updateCapacity(int difference){
         Object[] newElements = new Object[size + difference];
         for (int i = 0; i < Math.min(size, size + difference); i++)
